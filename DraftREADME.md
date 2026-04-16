@@ -1,15 +1,15 @@
 # Multi-Container Runtime with Kernel Memory Monitor
 
-## 1. Team Information
+##  Team Information
 
 | Name | SRN |
 |------|-----|
-| [Your Name Here] | [Your SRN Here] |
-| [Your Name Here] | [Your SRN Here] |
+| Maniish Rajendran | PES2UG24CS265 |
+| Mueez Ahmed | PES2UG24CS286 |
 
 ---
 
-## 2. Build, Load, and Run Instructions
+##  Build, Load, and Run Instructions
 
 ### Prerequisites
 
@@ -23,7 +23,7 @@ sudo apt install -y build-essential linux-headers-$(uname -r)
 ### Step 1 — Clone and Enter the Project
 
 ```bash
-git clone https://github.com/<your-username>/OS-Jackfruit.git
+https://github.com/Manu-Raj/OS-Jackfruit.git
 cd OS-Jackfruit/boilerplate
 ```
 
@@ -192,7 +192,7 @@ Expected `dmesg` on unload:
 
 ---
 
-## 3. Demo with Screenshots
+##  Demo with Screenshots
 
 > **Note:** Replace the placeholder captions below with your actual annotated screenshots when you run the system.
 
@@ -270,7 +270,7 @@ Expected `dmesg` on unload:
 
 ---
 
-## 4. Engineering Analysis
+##  Engineering Analysis
 
 ### 4.1 Linux Namespaces and Isolation
 
