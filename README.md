@@ -194,79 +194,61 @@ Expected `dmesg` on unload:
 
 ##  Demo with Screenshots
 
-> **Note:** Replace the placeholder captions below with your actual annotated screenshots when you run the system.
-
 ### Screenshot 1 — Multi-Container Supervision
 
-**Caption:** Two containers (`alpha` and `beta`) running concurrently under a single supervisor process. The supervisor terminal shows `[supervisor] started container` log lines for both, confirming the parent remains alive while children execute.
+**Caption:** Two containers (`alpha` and `beta`) running concurrently under a single supervisor process. The supervisor terminal shows the supervisor listening on `/tmp/mini_runtime.sock`, and the CLI terminal confirms both containers started — `alpha` running `memory_hog` (pid=4821) and `beta` running `cpu_hog` (pid=7359) — confirming the parent remains alive while children execute.
 
-```
-[screenshot here]
-```
+![Supervisor started and listening](task_1_1.png)
+
+![Containers alpha and beta started](task_1_2.png)
 
 ### Screenshot 2 — Metadata Tracking (`ps` output)
 
-**Caption:** Output of `sudo ./engine ps` showing both containers with their host PIDs, states, soft/hard memory limits (in MiB), and start times. All fields are populated from the in-memory `container_record_t` linked list.
+**Caption:** Output of `sudo ./engine ps` showing both containers with their host PIDs and states. `beta` (pid=7359) and `alpha` (pid=4821) are both listed as `running`, populated from the in-memory `container_record_t` linked list.
 
-```
-[screenshot here]
-```
+![engine ps output showing both containers running](task_2.png)
 
 ### Screenshot 3 — Bounded-Buffer Logging
 
-**Caption:** Left pane shows the `logs alpha` command returning container stdout captured through the producer→bounded-buffer→consumer logging pipeline. Right pane shows supervisor stderr confirming the logger thread is active. The log file `logs/alpha.log` is written by the single consumer thread from entries pushed by the per-container producer thread.
+**Caption:** Output of `cat logs/alpha.log` and `cat logs/beta.log` showing container stdout captured through the producer→bounded-buffer→consumer logging pipeline. Both log files record the `memory_hog` workload's progressive 8 MB chunk allocations up to 80 MB total, written by the single consumer thread from entries pushed by the per-container producer thread.
 
-```
-[screenshot here]
-```
+![Log files for alpha and beta containers](task_3.png)
 
 ### Screenshot 4 — CLI and IPC
 
-**Caption:** A `stop` command being issued from the CLI. The CLI connects to the supervisor's UNIX domain socket (`/tmp/mini_runtime.sock`), sends a `control_request_t` struct, and receives a `control_response_t` back. The supervisor terminal shows `SIGTERM` being sent to the container process.
+**Caption:** A `start` command being issued from the CLI for a new set of containers. The CLI connects to the supervisor's UNIX domain socket (`/tmp/mini_runtime.sock`), sends a `control_request_t` struct, and receives a `control_response_t` back. Containers `alpha` (pid=9967) running `memory_hog` and `beta` (pid=9985) running `cpu_hog` are started successfully.
 
-```
-[screenshot here]
-```
+![CLI start commands via IPC](task_4_0.png)
 
 ### Screenshot 5 — Soft-Limit Warning
 
-**Caption:** `dmesg` output showing a `SOFT LIMIT` warning emitted by the kernel module when the `memory_hog` container's RSS exceeded the configured soft threshold. The warning fires only once per container registration.
+**Caption:** `dmesg` output showing a `SOFT LIMIT` warning emitted by the kernel module when the `soft-test2` container's RSS exceeded the configured soft threshold. Container `soft-test2` (pid=4801) was started with `--soft-mib 5 --hard-mib 200`. The kernel monitor detected RSS of 8,986,624 bytes exceeding the soft limit of 5,242,880 bytes and fired the warning (only once per container registration).
 
-```
-[container_monitor] SOFT LIMIT container=hogtest pid=1234 rss=31457280 limit=31457280
-```
+![Starting soft-test2 container with tight soft limit](task_4_1_1.png)
 
-```
-[screenshot here]
-```
+![dmesg showing SOFT LIMIT warning for soft-test2](task_4_1_2.png)
 
 ### Screenshot 6 — Hard-Limit Enforcement
 
-**Caption:** `dmesg` output showing `HARD LIMIT` and `SIGKILL` being sent by the kernel module after RSS exceeded the hard threshold. The subsequent `sudo ./engine ps` shows the container state changed to `killed`, set by the SIGCHLD handler which detected `WIFSIGNALED` without `stop_requested`.
+**Caption:** `dmesg` output showing `HARD LIMIT` enforcement by the kernel module after RSS exceeded the hard threshold. Container `hard-test2` (pid=4875) was started with `--soft-mib 5 --hard-mib 10`. The kernel monitor detected RSS of 17,375,232 bytes exceeding the hard limit of 10,485,760 bytes and sent `SIGKILL`. The container's state would subsequently change to `killed`, set by the SIGCHLD handler which detected `WIFSIGNALED` without `stop_requested`.
 
-```
-[container_monitor] HARD LIMIT container=hogtest pid=1234 rss=52428800 limit=52428800
-```
+![Starting hard-test2 container with tight hard limit](task_4_2_1.png)
 
-```
-[screenshot here]
-```
+![dmesg showing HARD LIMIT enforcement for hard-test2](task_4_2_2.png)
 
 ### Screenshot 7 — Scheduling Experiment
 
-**Caption:** Side-by-side log output of `sched-default` (nice 0) vs `sched-low` (nice +15) running the same `cpu_hog` workload for 10 seconds. The default-priority container reports more iterations per second, demonstrating that the CFS scheduler allocates less CPU time to the higher-nice process.
+**Caption:** Side-by-side log output of the `cpu` container (nice +10) running `cpu_hog` for 10 seconds and the `io` container (nice -10) running `io_pulse`. The `cpu_hog` log shows the accumulator value per elapsed second, demonstrating CPU-bound computation. The `io_pulse` log shows steady iteration-per-second progress, confirming that I/O-bound tasks interact differently with the CFS scheduler's CPU time allocation based on nice values.
 
-```
-[screenshot here]
-```
+![Scheduling experiment logs for cpu and io containers](task_5.png)
 
 ### Screenshot 8 — Clean Teardown
 
-**Caption:** After sending SIGTERM to the supervisor, the terminal shows all containers receiving `SIGTERM`, the logger thread draining remaining log entries and printing `[logger] thread exiting, all entries drained`, and the supervisor printing `[supervisor] clean exit`. The `ps aux | grep defunct` check confirms zero zombie processes.
+**Caption:** After issuing `sudo ./engine stop` for all containers (`alpha`, `beta`, `soft-test`, `cpu1`, `cpu2`), each receives `SIGTERM` and the supervisor confirms delivery. The subsequent `ps aux | grep hog` check returns only the grep process itself — confirming zero zombie or orphan container processes remain. The `ps aux | grep engine` output likewise shows no supervisor process remaining, confirming a clean exit.
 
-```
-[screenshot here]
-```
+![Stop commands sent to all containers, no zombies remaining](task_6_1.png)
+
+![ps aux grep engine confirms supervisor has exited cleanly](task_6_2.png)
 
 ---
 
