@@ -198,57 +198,69 @@ Expected `dmesg` on unload:
 
 **Caption:** Two containers (`alpha` and `beta`) running concurrently under a single supervisor process. The supervisor terminal shows the supervisor listening on `/tmp/mini_runtime.sock`, and the CLI terminal confirms both containers started — `alpha` running `memory_hog` (pid=4821) and `beta` running `cpu_hog` (pid=7359) — confirming the parent remains alive while children execute.
 
-![Supervisor started and listening](task_1_1.png)
+<img width="1257" height="128" alt="task 1 1" src="https://github.com/user-attachments/assets/a4456ba6-7dc9-44d4-a2ff-40b932724df0" />
 
-![Containers alpha and beta started](task_1_2.png)
+
+<img width="1667" height="221" alt="task 1 2" src="https://github.com/user-attachments/assets/868998ee-2e85-43fb-83c9-a0b44feaa4ec" />
+
 
 ### Screenshot 2 — Metadata Tracking (`ps` output)
 
 **Caption:** Output of `sudo ./engine ps` showing both containers with their host PIDs and states. `beta` (pid=7359) and `alpha` (pid=4821) are both listed as `running`, populated from the in-memory `container_record_t` linked list.
 
-![engine ps output showing both containers running](task_2.png)
+<img width="1650" height="172" alt="task 2" src="https://github.com/user-attachments/assets/90abb9ae-0cad-400f-927b-06e1e45c4ddd" />
+
 
 ### Screenshot 3 — Bounded-Buffer Logging
 
 **Caption:** Output of `cat logs/alpha.log` and `cat logs/beta.log` showing container stdout captured through the producer→bounded-buffer→consumer logging pipeline. Both log files record the `memory_hog` workload's progressive 8 MB chunk allocations up to 80 MB total, written by the single consumer thread from entries pushed by the per-container producer thread.
 
-![Log files for alpha and beta containers](task_3.png)
+<img width="1052" height="657" alt="task 3" src="https://github.com/user-attachments/assets/cbe626c4-012f-4843-853a-b3215f7998b2" />
+
 
 ### Screenshot 4 — CLI and IPC
 
 **Caption:** A `start` command being issued from the CLI for a new set of containers. The CLI connects to the supervisor's UNIX domain socket (`/tmp/mini_runtime.sock`), sends a `control_request_t` struct, and receives a `control_response_t` back. Containers `alpha` (pid=9967) running `memory_hog` and `beta` (pid=9985) running `cpu_hog` are started successfully.
 
-![CLI start commands via IPC](task_4_0.png)
+<img width="1567" height="168" alt="task 4 0" src="https://github.com/user-attachments/assets/84ac5562-d8e2-4ad6-8bf8-1078030ebd47" />
+
 
 ### Screenshot 5 — Soft-Limit Warning
 
 **Caption:** `dmesg` output showing a `SOFT LIMIT` warning emitted by the kernel module when the `soft-test2` container's RSS exceeded the configured soft threshold. Container `soft-test2` (pid=4801) was started with `--soft-mib 5 --hard-mib 200`. The kernel monitor detected RSS of 8,986,624 bytes exceeding the soft limit of 5,242,880 bytes and fired the warning (only once per container registration).
 
-![Starting soft-test2 container with tight soft limit](task_4_1_1.png)
+<img width="1673" height="120" alt="task 4 1 1" src="https://github.com/user-attachments/assets/c0e9d845-9c4a-4483-b371-68f12d5f8cee" />
 
-![dmesg showing SOFT LIMIT warning for soft-test2](task_4_1_2.png)
+
+<img width="1665" height="60" alt="task 4 1 2" src="https://github.com/user-attachments/assets/5bad9651-bd48-4b32-bf16-0322b1e04c02" />
+
 
 ### Screenshot 6 — Hard-Limit Enforcement
 
 **Caption:** `dmesg` output showing `HARD LIMIT` enforcement by the kernel module after RSS exceeded the hard threshold. Container `hard-test2` (pid=4875) was started with `--soft-mib 5 --hard-mib 10`. The kernel monitor detected RSS of 17,375,232 bytes exceeding the hard limit of 10,485,760 bytes and sent `SIGKILL`. The container's state would subsequently change to `killed`, set by the SIGCHLD handler which detected `WIFSIGNALED` without `stop_requested`.
 
-![Starting hard-test2 container with tight hard limit](task_4_2_1.png)
+<img width="1651" height="123" alt="task 4 2 1" src="https://github.com/user-attachments/assets/b621b4c5-6b3e-4f34-98d4-37ff5d8c1ba5" />
 
-![dmesg showing HARD LIMIT enforcement for hard-test2](task_4_2_2.png)
+
+<img width="1668" height="53" alt="task 4 2 2" src="https://github.com/user-attachments/assets/32335bb3-c1b7-4508-84f2-4239affce938" />
+
 
 ### Screenshot 7 — Scheduling Experiment
 
 **Caption:** Side-by-side log output of the `cpu` container (nice +10) running `cpu_hog` for 10 seconds and the `io` container (nice -10) running `io_pulse`. The `cpu_hog` log shows the accumulator value per elapsed second, demonstrating CPU-bound computation. The `io_pulse` log shows steady iteration-per-second progress, confirming that I/O-bound tasks interact differently with the CFS scheduler's CPU time allocation based on nice values.
 
-![Scheduling experiment logs for cpu and io containers](task_5.png)
+<img width="1187" height="647" alt="task 5" src="https://github.com/user-attachments/assets/1d4539d9-7b7c-4625-832f-0c2464668ac9" />
+
 
 ### Screenshot 8 — Clean Teardown
 
 **Caption:** After issuing `sudo ./engine stop` for all containers (`alpha`, `beta`, `soft-test`, `cpu1`, `cpu2`), each receives `SIGTERM` and the supervisor confirms delivery. The subsequent `ps aux | grep hog` check returns only the grep process itself — confirming zero zombie or orphan container processes remain. The `ps aux | grep engine` output likewise shows no supervisor process remaining, confirming a clean exit.
 
-![Stop commands sent to all containers, no zombies remaining](task_6_1.png)
+<img width="1340" height="635" alt="task 6 1" src="https://github.com/user-attachments/assets/42c16365-66a0-411a-9d32-0f773131b669" />
 
-![ps aux grep engine confirms supervisor has exited cleanly](task_6_2.png)
+
+<img width="1537" height="227" alt="task 6 2" src="https://github.com/user-attachments/assets/73f7cbaa-714c-42b2-ac33-4abd4881df99" />
+
 
 ---
 
